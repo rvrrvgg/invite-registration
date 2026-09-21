@@ -1,0 +1,152 @@
+/*
+ * Admin settings styling for the build-free vanilla-JS UI.
+ */
+
+#invite_registration-admin-settings {
+    max-width: 900px;
+}
+
+#invite_registration-admin-settings .ir-section {
+    margin-bottom: 32px;
+}
+
+#invite_registration-admin-settings h2 {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+#invite_registration-admin-settings .settings-hint {
+    color: var(--color-text-maxcontrast);
+    margin-bottom: 12px;
+}
+
+/* --- create row --- */
+
+.ir-create-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+.ir-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+}
+
+.ir-field label {
+    font-weight: 600;
+}
+
+.ir-field-btn {
+    justify-content: flex-end;
+}
+
+.ir-input {
+    height: 34px;
+    padding: 4px 8px;
+    box-sizing: border-box;
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--border-radius);
+    background: var(--color-main-background);
+    color: var(--color-main-text);
+}
+
+select.ir-input {
+    min-width: 160px;
+}
+
+/* --- last created link --- */
+
+.ir-lastlink {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--color-background-hover);
+    border-radius: var(--border-radius);
+}
+
+.ir-lastlink-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ir-lastlink-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 34px;
+    padding: 4px 8px;
+    box-sizing: border-box;
+}
+
+/* --- list table --- */
+
+.ir-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ir-table th,
+.ir-table td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+
+.ir-actions-col {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.ir-link-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ir-link-cell code {
+    font-family: monospace;
+}
+
+.ir-icon-btn {
+    min-width: 34px;
+    padding: 0 8px;
+}
+
+.ir-empty {
+    color: var(--color-text-maxcontrast);
+}
+
+/* --- status pills --- */
+
+.ir-status {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--border-radius-pill, 14px);
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.ir-status--active {
+    background: var(--color-success, #46ba61);
+    color: #fff;
+}
+
+.ir-status--revoked {
+    background: var(--color-error, #e9322d);
+    color: #fff;
+}
+
+.ir-status--expired,
+.ir-status--exhausted {
+    background: var(--color-background-dark);
+    color: var(--color-text-maxcontrast);
+}
+
+/* Spacing between action buttons */
+.ir-actions-col .button {
+    margin-left: 4px;
+}

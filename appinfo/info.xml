@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>invite_registration</id>
+    <name>Invite Registration</name>
+    <summary>Invite-only user registration for Nextcloud</summary>
+    <description><![CDATA[
+Invite Registration lets administrators create personal, cryptographically random
+invitation links. New Nextcloud user accounts can only be created by opening a valid
+invitation link — there is no public self-service registration button.
+
+Features:
+- Admin-generated invitation links with configurable expiry and usage limits
+- One-time or multi-use links
+- Revoke links at any time
+- Email verification: accounts are activated only after the user confirms their email
+- Optional default group assignment for new users
+- Creates normal Nextcloud accounts (not guests) via the native user manager
+- Passwords are never stored by the app; they are passed straight to Nextcloud
+- No token enumeration: invalid, expired, revoked and exhausted links show a generic error
+    ]]></description>
+    <version>1.0.2</version>
+    <licence>agpl</licence>
+    <author>Invite Registration Contributors</author>
+    <namespace>InviteRegistration</namespace>
+    <category>security</category>
+    <category>tools</category>
+    <bugs>https://github.com/example/invite_registration/issues</bugs>
+    <dependencies>
+        <nextcloud min-version="32" max-version="32"/>
+    </dependencies>
+    <settings>
+        <admin>OCA\InviteRegistration\Settings\AdminSettings</admin>
+        <admin-section>OCA\InviteRegistration\Settings\AdminSection</admin-section>
+    </settings>
+</info>

@@ -1,0 +1,6 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.log
+
+# NOTE: js/ is hand-written and MUST be shipped — do NOT ignore it.

@@ -1,0 +1,61 @@
+/* Styling for the public (guest) pages: registration form, errors, verify result. */
+
+.invite-reg-box {
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.invite-reg-box h2 {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.invite-reg-intro {
+    text-align: center;
+    color: var(--color-text-maxcontrast);
+    margin-bottom: 16px;
+}
+
+.invite-reg-form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.invite-reg-form label {
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.invite-reg-form input[type="text"],
+.invite-reg-form input[type="email"],
+.invite-reg-form input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.invite-reg-hint {
+    color: var(--color-text-maxcontrast);
+    font-size: 0.9em;
+    margin: 2px 0 8px;
+}
+
+.invite-reg-submit {
+    margin-top: 12px;
+    width: 100%;
+}
+
+.invite-reg-error {
+    background: var(--color-error);
+    color: var(--color-primary-text, #fff);
+    border-radius: var(--border-radius);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.invite-reg-error-box p,
+.invite-reg-success-box p {
+    text-align: center;
+    color: var(--color-text-maxcontrast);
+}
