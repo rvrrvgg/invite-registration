@@ -1,0 +1,91 @@
+## Automatic build, sign and publish to the Nextcloud App Store.
+##
+## HOW IT WORKS
+## ------------
+## When you push a git tag like "v1.1.1", this workflow:
+##   1. Packages the app into a .tar.gz (excluding dev files).
+##   2. Signs it with your Nextcloud app certificate.
+##   3. Creates a GitHub Release with the .tar.gz attached.
+##   4. Publishes the release to apps.nextcloud.com.
+##
+## You never touch a command line — everything runs on GitHub's servers.
+##
+## ONE-TIME SETUP (in your GitHub repo: Settings -> Secrets and variables -> Actions):
+##   - NEXTCLOUD_SIGNING_CERT  : the certificate Nextcloud issued to you (invite_registration.crt content)
+##   - NEXTCLOUD_SIGNING_KEY   : your private key (invite_registration.key content)
+##   - NEXTCLOUD_APPSTORE_TOKEN: your API token from apps.nextcloud.com (Account -> API token)
+##
+## See PUBLISHING.md in this repo for the full step-by-step guide.
+
+name: Publish to Nextcloud App Store
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  APP_ID: invite_registration
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Read app version from the tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build the release archive
+        run: |
+          set -e
+          APP_ID="${{ env.APP_ID }}"
+          BUILD_DIR="$(mktemp -d)"
+          mkdir -p "$BUILD_DIR/$APP_ID"
+
+          # Copy the app, excluding development-only files.
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='*.md' \
+            --exclude='tests' \
+            ./ "$BUILD_DIR/$APP_ID/"
+
+          mkdir -p artifacts
+          tar -czf "artifacts/$APP_ID.tar.gz" -C "$BUILD_DIR" "$APP_ID"
+          echo "Archive created:"
+          ls -l artifacts
+
+      - name: Write signing certificate and key
+        run: |
+          mkdir -p ~/.nextcloud/certificates
+          printf '%s' "${{ secrets.NEXTCLOUD_SIGNING_CERT }}" > ~/.nextcloud/certificates/${{ env.APP_ID }}.crt
+          printf '%s' "${{ secrets.NEXTCLOUD_SIGNING_KEY }}"  > ~/.nextcloud/certificates/${{ env.APP_ID }}.key
+
+      - name: Sign the archive
+        id: sign
+        run: |
+          set -e
+          APP_ID="${{ env.APP_ID }}"
+          SIGNATURE=$(openssl dgst -sha512 -sign ~/.nextcloud/certificates/$APP_ID.key artifacts/$APP_ID.tar.gz | openssl base64 -A)
+          echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
+
+      - name: Create the GitHub Release with the archive attached
+        id: gh_release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/${{ env.APP_ID }}.tar.gz
+          fail_on_unmatched_files: true
+
+      - name: Publish to the Nextcloud App Store
+        run: |
+          set -e
+          APP_ID="${{ env.APP_ID }}"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}/${APP_ID}.tar.gz"
+          curl -sS -X POST https://apps.nextcloud.com/api/v1/apps/releases \
+            -H "Authorization: Token ${{ secrets.NEXTCLOUD_APPSTORE_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"download\": \"${DOWNLOAD_URL}\", \"signature\": \"${{ steps.sign.outputs.signature }}\"}"
