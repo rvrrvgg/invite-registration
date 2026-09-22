@@ -31,13 +31,13 @@ class InviteService {
     /**
      * Create a new invite.
      *
-     * @param int $validityHours how long the link stays valid, in hours.
-     *   Use 0 for "never expires".
-     * @param int $maxUses how many accounts may be created (>= 1)
-     * @param string $createdBy admin uid
+     * @param int    $validityHours how long the link stays valid, in hours. 0 = never expires.
+     * @param int    $maxUses       how many accounts may be created (>= 1)
+     * @param string $createdBy     admin uid
+     * @param string $groupId       Nextcloud group ID to assign on registration ('' = none)
      * @throws \InvalidArgumentException on out-of-range input
      */
-    public function create(int $validityHours, int $maxUses, string $createdBy): Invite {
+    public function create(int $validityHours, int $maxUses, string $createdBy, string $groupId = ''): Invite {
         if ($validityHours < 0) {
             throw new \InvalidArgumentException('validityHours must be >= 0');
         }
@@ -57,6 +57,7 @@ class InviteService {
         $invite->setMaxUses($maxUses);
         $invite->setUsedCount(0);
         $invite->setRevoked(0);
+        $invite->setGroupId($groupId);
         $invite->setCreatedAt($now);
         $invite->setCreatedBy($createdBy);
 

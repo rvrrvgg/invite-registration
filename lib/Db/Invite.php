@@ -17,6 +17,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setUsedCount(int $usedCount)
  * @method int getRevoked()
  * @method void setRevoked(int $revoked)
+ * @method string getGroupId()
+ * @method void setGroupId(string $groupId)
  * @method int getCreatedAt()
  * @method void setCreatedAt(int $createdAt)
  * @method string getCreatedBy()
@@ -27,10 +29,11 @@ class Invite extends Entity {
     protected int $expiresAt = 0;
     protected int $maxUses = 1;
     protected int $usedCount = 0;
-    // Stored as a small integer (0 = active, 1 = revoked). We deliberately do
-    // NOT use a boolean column: on PostgreSQL a NotNull boolean column rejects
-    // a bound PHP `false` value ("can not store false"). Integers avoid that.
+    // Stored as smallint (0 = active, 1 = revoked) — NOT a boolean column.
+    // PostgreSQL rejects a bound PHP `false` on a NotNull boolean column.
     protected int $revoked = 0;
+    /** Nextcloud group ID assigned to users registering via this link. Empty = no group. */
+    protected string $groupId = '';
     protected int $createdAt = 0;
     protected string $createdBy = '';
 
@@ -40,6 +43,7 @@ class Invite extends Entity {
         $this->addType('maxUses', 'integer');
         $this->addType('usedCount', 'integer');
         $this->addType('revoked', 'integer');
+        $this->addType('groupId', 'string');
         $this->addType('createdAt', 'integer');
         $this->addType('createdBy', 'string');
     }
@@ -74,21 +78,18 @@ class Invite extends Entity {
         return 'active';
     }
 
-    /**
-     * Serialize for the admin UI. The full link is composed in the controller
-     * because entity classes do not have access to the URL generator.
-     */
     public function jsonSerializeSafe(): array {
         return [
-            'id' => $this->getId(),
-            'token' => $this->getToken(),
+            'id'        => $this->getId(),
+            'token'     => $this->getToken(),
             'expiresAt' => $this->getExpiresAt(),
-            'maxUses' => $this->getMaxUses(),
+            'maxUses'   => $this->getMaxUses(),
             'usedCount' => $this->getUsedCount(),
-            'revoked' => $this->isRevoked(),
+            'revoked'   => $this->isRevoked(),
+            'groupId'   => $this->getGroupId(),
             'createdAt' => $this->getCreatedAt(),
             'createdBy' => $this->getCreatedBy(),
-            'status' => $this->getStatus(),
+            'status'    => $this->getStatus(),
         ];
     }
 }

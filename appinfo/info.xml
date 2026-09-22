@@ -14,12 +14,13 @@ Features:
 - One-time or multi-use links
 - Revoke links at any time
 - Email verification: accounts are activated only after the user confirms their email
-- Optional default group assignment for new users
+- Per-link group assignment: choose which group a new user joins
+- Automatic team folder: a Group Folder is created for the group if the Group Folders app is installed
 - Creates normal Nextcloud accounts (not guests) via the native user manager
 - Passwords are never stored by the app; they are passed straight to Nextcloud
 - No token enumeration: invalid, expired, revoked and exhausted links show a generic error
     ]]></description>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
     <licence>agpl</licence>
     <author>Invite Registration Contributors</author>
     <namespace>InviteRegistration</namespace>

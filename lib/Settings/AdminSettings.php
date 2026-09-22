@@ -7,7 +7,6 @@ namespace OCA\InviteRegistration\Settings;
 use OCA\InviteRegistration\AppInfo\Application;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
-use OCP\IAppConfig;
 use OCP\IGroupManager;
 use OCP\Settings\ISettings;
 use OCP\Util;
@@ -15,14 +14,14 @@ use OCP\Util;
 class AdminSettings implements ISettings {
     public function __construct(
         private IInitialState $initialState,
-        private IAppConfig $appConfig,
         private IGroupManager $groupManager,
     ) {
     }
 
     public function getForm(): TemplateResponse {
-        // Provide the current default group and the list of groups to the
-        // build-free admin script via IInitialState (base64-encoded JSON).
+        // Provide the list of groups to the build-free admin script via
+        // IInitialState (base64-encoded JSON). The script uses these both for
+        // the per-link team selector and to label groups in the invite table.
         $groups = array_map(
             static fn ($group) => [
                 'id' => $group->getGID(),
@@ -32,10 +31,6 @@ class AdminSettings implements ISettings {
         );
 
         $this->initialState->provideInitialState('groups', array_values($groups));
-        $this->initialState->provideInitialState(
-            'defaultGroup',
-            $this->appConfig->getValueString(Application::APP_ID, Application::CONFIG_DEFAULT_GROUP, '')
-        );
 
         Util::addScript(Application::APP_ID, Application::APP_ID . '-admin');
         Util::addStyle(Application::APP_ID, 'admin');

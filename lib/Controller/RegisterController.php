@@ -106,7 +106,7 @@ class RegisterController extends Controller {
 
         // 4. Create the account + send verification. Release the use on failure.
         try {
-            $this->registrationService->register($username, $email, $password);
+            $this->registrationService->register($username, $email, $password, $invite);
         } catch (RegistrationException $e) {
             $this->inviteService->releaseUse($invite->getId());
             return $this->formWithError($token, $e->getMessage(), $username, $email);

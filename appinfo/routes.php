@@ -16,9 +16,6 @@ return [
         ['name' => 'admin#revoke', 'url' => '/admin/invites/{id}/revoke', 'verb' => 'POST'],
         ['name' => 'admin#destroy', 'url' => '/admin/invites/{id}', 'verb' => 'DELETE'],
 
-        // Admin settings (default group)
-        ['name' => 'settings#saveDefaultGroup', 'url' => '/admin/settings/default-group', 'verb' => 'POST'],
-
         // Public registration page + submit
         ['name' => 'register#show', 'url' => '/i/{token}', 'verb' => 'GET'],
         ['name' => 'register#submit', 'url' => '/i/{token}', 'verb' => 'POST'],

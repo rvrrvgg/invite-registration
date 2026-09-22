@@ -167,10 +167,22 @@
 	var state = {
 		invites: [],
 		groups: loadState('groups', []),
-		defaultGroup: loadState('defaultGroup', ''),
 	};
 
 	var refs = {};
+
+	/** Human-readable name for a group ID, falling back to the ID or a dash. */
+	function groupLabel(groupId) {
+		if (!groupId) {
+			return '—';
+		}
+		for (var i = 0; i < state.groups.length; i++) {
+			if (state.groups[i].id === groupId) {
+				return state.groups[i].displayName;
+			}
+		}
+		return groupId;
+	}
 
 	// ---- rendering -----------------------------------------------------
 
@@ -202,12 +214,25 @@
 			class: 'ir-input',
 		});
 
+		// Per-link group selector. "No group" leaves the user ungrouped and
+		// creates no team folder.
+		var groupSelect = el('select', { id: 'ir-group', class: 'ir-input' }, [
+			el('option', { value: '', text: t('No group') }),
+		].concat(state.groups.map(function (g) {
+			return el('option', { value: g.id, text: g.displayName });
+		})));
+
 		var createBtn = el('button', {
 			class: 'button primary',
 			type: 'button',
 			text: t('Create invitation link'),
 			onclick: function () {
-				createInvite(parseInt(validitySelect.value, 10), parseInt(usesInput.value, 10), createBtn);
+				createInvite(
+					parseInt(validitySelect.value, 10),
+					parseInt(usesInput.value, 10),
+					groupSelect.value,
+					createBtn
+				);
 			},
 		});
 
@@ -226,8 +251,13 @@
 					el('label', { for: 'ir-maxuses', text: t('Number of uses') }),
 					usesInput,
 				]),
+				el('div', { class: 'ir-field' }, [
+					el('label', { for: 'ir-group', text: t('Team') }),
+					groupSelect,
+				]),
 				el('div', { class: 'ir-field ir-field-btn' }, [createBtn]),
 			]),
+			el('p', { class: 'settings-hint ir-group-hint', text: t('The user joins this team. If the Group Folders app is installed, a shared team folder is created for the team automatically.') }),
 			lastLinkBox,
 		]);
 	}
@@ -245,28 +275,6 @@
 		box.style.display = '';
 		input.focus();
 		input.select();
-	}
-
-	function buildGroupSection() {
-		var select = el('select', { id: 'ir-group', class: 'ir-input' }, [
-			el('option', { value: '', text: t('No group') }),
-		].concat(state.groups.map(function (g) {
-			var opt = el('option', { value: g.id, text: g.displayName });
-			if (g.id === state.defaultGroup) {
-				opt.setAttribute('selected', 'selected');
-			}
-			return opt;
-		})));
-
-		select.addEventListener('change', function () {
-			saveDefaultGroup(select.value);
-		});
-
-		return el('div', { class: 'section ir-section' }, [
-			el('h2', { text: t('Default group') }),
-			el('p', { class: 'settings-hint', text: t('New accounts created through an invitation are automatically added to this group.') }),
-			el('div', { class: 'ir-field' }, [select]),
-		]);
 	}
 
 	function buildListSection() {
@@ -290,6 +298,7 @@
 		var thead = el('thead', {}, [
 			el('tr', {}, [
 				el('th', { text: t('Link') }),
+				el('th', { text: t('Team') }),
 				el('th', { text: t('Valid until') }),
 				el('th', { text: t('Usage') }),
 				el('th', { text: t('Status') }),
@@ -322,6 +331,7 @@
 					el('code', { title: invite.link, text: shortToken(invite.token) }),
 					copyBtn,
 				]),
+				el('td', { text: groupLabel(invite.groupId) }),
 				el('td', { text: formatDate(invite.expiresAt) }),
 				el('td', { text: invite.usedCount + ' / ' + invite.maxUses }),
 				el('td', {}, [
@@ -346,13 +356,13 @@
 		});
 	}
 
-	function createInvite(validityHours, maxUses, btn) {
+	function createInvite(validityHours, maxUses, groupId, btn) {
 		if (!Number.isInteger(maxUses) || maxUses < 1) {
 			toastError(t('Number of uses must be at least 1.'));
 			return;
 		}
 		btn.setAttribute('disabled', 'disabled');
-		api('POST', '/admin/invites', { validityHours: validityHours, maxUses: maxUses })
+		api('POST', '/admin/invites', { validityHours: validityHours, maxUses: maxUses, groupId: groupId || '' })
 			.then(function (data) {
 				state.invites.unshift(data.invite);
 				renderList();
@@ -394,17 +404,6 @@
 			});
 	}
 
-	function saveDefaultGroup(groupId) {
-		api('POST', '/admin/settings/default-group', { groupId: groupId })
-			.then(function () {
-				state.defaultGroup = groupId;
-				toastSuccess(t('Default group saved.'));
-			})
-			.catch(function () {
-				toastError(t('Could not save the default group.'));
-			});
-	}
-
 	// ---- bootstrap -----------------------------------------------------
 
 	function init() {
@@ -414,7 +413,6 @@
 		}
 		mount.innerHTML = '';
 		mount.appendChild(buildCreateSection());
-		mount.appendChild(buildGroupSection());
 		mount.appendChild(buildListSection());
 		loadInvites();
 	}

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace OCA\InviteRegistration\Service;
 
 use OCA\InviteRegistration\AppInfo\Application;
+use OCA\InviteRegistration\Db\Invite;
 use OCA\InviteRegistration\Db\Verification;
 use OCA\InviteRegistration\Db\VerificationMapper;
 use OCA\InviteRegistration\Exception\RegistrationException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
-use OCP\IAppConfig;
 use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\IURLGenerator;
@@ -25,6 +25,12 @@ use Psr\Log\LoggerInterface;
  * email verification flow. The account is created disabled and only enabled
  * once the user confirms their email address.
  *
+ * If the invite has a group assigned:
+ *  1. The user is added to that group.
+ *  2. If no Group Folder with that group exists yet, one is created automatically
+ *     with the group's display name as mount point and the group assigned with
+ *     full permissions.
+ *
  * Passwords are passed straight to Nextcloud's user manager and never stored.
  */
 class RegistrationService {
@@ -35,7 +41,6 @@ class RegistrationService {
         private IUserManager $userManager,
         private IGroupManager $groupManager,
         private VerificationMapper $verificationMapper,
-        private IAppConfig $appConfig,
         private IMailer $mailer,
         private IURLGenerator $urlGenerator,
         private ISecureRandom $secureRandom,
@@ -61,27 +66,26 @@ class RegistrationService {
         if ($email === '' || !$this->mailer->validateMailAddress($email)) {
             throw new RegistrationException($this->l10n->t('Please enter a valid email address.'));
         }
-        $minLength = $this->getMinPasswordLength();
-        if (strlen($password) < $minLength) {
+        if (strlen($password) < Application::DEFAULT_MIN_PASSWORD_LENGTH) {
             throw new RegistrationException(
-                $this->l10n->t('The password must be at least %d characters long.', [$minLength])
+                $this->l10n->t('The password must be at least %d characters long.', [Application::DEFAULT_MIN_PASSWORD_LENGTH])
             );
         }
     }
 
     /**
-     * Create the (disabled) account, assign the default group, store a
-     * verification token and send the confirmation email.
+     * Create the (disabled) account, assign the invite's group, ensure a Group
+     * Folder exists for that group, store a verification token and send the
+     * confirmation email.
      *
      * @throws RegistrationException on any failure (message is user-safe)
      */
-    public function register(string $username, string $email, string $password): IUser {
+    public function register(string $username, string $email, string $password, Invite $invite): IUser {
         $this->validateInput($username, $email, $password);
 
         try {
             $user = $this->userManager->createUser($username, $password);
         } catch (\Throwable $e) {
-            // Nextcloud throws for policy violations (e.g. password policy app).
             $this->logger->warning('Invite registration: createUser failed', ['exception' => $e]);
             throw new RegistrationException(
                 $this->l10n->t('The account could not be created: %s', [$e->getMessage()])
@@ -94,13 +98,18 @@ class RegistrationService {
 
         try {
             $user->setEMailAddress($email);
-            // Disable until the email is confirmed.
             $user->setEnabled(false);
-            $this->assignDefaultGroup($user);
+
+            // Assign the invite's group and ensure a Group Folder exists.
+            $groupId = $invite->getGroupId();
+            if ($groupId !== '') {
+                $this->assignGroup($user, $groupId);
+                $this->ensureGroupFolder($groupId);
+            }
+
             $verification = $this->createVerification($user->getUID());
             $this->sendVerificationEmail($user, $email, $verification->getToken());
         } catch (RegistrationException $e) {
-            // Roll back the freshly created account so the invite can be retried.
             $this->safeDeleteUser($user);
             throw $e;
         } catch (\Throwable $e) {
@@ -132,7 +141,6 @@ class RegistrationService {
         }
 
         if ($verification->isExpired()) {
-            // Clean up the expired account + token so the invite is not stuck.
             $this->safeDeleteUserById($verification->getUserId());
             $this->verificationMapper->delete($verification);
             throw new RegistrationException($this->l10n->t('This confirmation link is invalid or has expired.'));
@@ -150,25 +158,68 @@ class RegistrationService {
         return $user->getUID();
     }
 
-    private function assignDefaultGroup(IUser $user): void {
-        $groupId = (string)$this->appConfig->getValueString(
-            Application::APP_ID,
-            Application::CONFIG_DEFAULT_GROUP,
-            ''
-        );
-        if ($groupId === '') {
-            return;
-        }
+    // -----------------------------------------------------------------------
+    // Private helpers
+    // -----------------------------------------------------------------------
+
+    private function assignGroup(IUser $user, string $groupId): void {
         $group = $this->groupManager->get($groupId);
         if ($group === null) {
-            $this->logger->warning('Invite registration: configured default group does not exist', ['group' => $groupId]);
+            $this->logger->warning('Invite registration: invite group does not exist', ['group' => $groupId]);
             return;
         }
         $group->addUser($user);
     }
 
+    /**
+     * Create a Group Folder for $groupId if none exists yet.
+     * Uses the Group Folders app's FolderManager. If the app is not available
+     * (e.g. deactivated), the error is logged and silently swallowed so that
+     * account creation still succeeds.
+     */
+    private function ensureGroupFolder(string $groupId): void {
+        try {
+            $folderManager = \OCP\Server::get(\OCA\GroupFolders\Folder\FolderManager::class);
+        } catch (\Throwable $e) {
+            $this->logger->warning('Invite registration: Group Folders app not available, skipping folder creation', ['exception' => $e]);
+            return;
+        }
+
+        try {
+            // Check if this group already has a folder assigned.
+            if ($folderManager->hasFolderForGroup($groupId)) {
+                return;
+            }
+
+            // Use the group display name as the mount point, falling back to the ID.
+            $group = $this->groupManager->get($groupId);
+            $mountPoint = $group !== null ? $group->getDisplayName() : $groupId;
+
+            // If a folder with the same mount point already exists, use the group ID
+            // as a suffix to avoid a collision.
+            if ($folderManager->mountPointExists($mountPoint)) {
+                $mountPoint = $mountPoint . '_' . $groupId;
+            }
+
+            $folderId = $folderManager->createFolder($mountPoint);
+            $folderManager->addApplicableGroup($folderId, $groupId);
+
+            $this->logger->info('Invite registration: created Group Folder for group', [
+                'group'       => $groupId,
+                'mountPoint'  => $mountPoint,
+                'folderId'    => $folderId,
+            ]);
+        } catch (\Throwable $e) {
+            // A folder creation failure is non-fatal: the user and group
+            // assignment succeeded. Log it so an admin can act on it.
+            $this->logger->error('Invite registration: failed to create Group Folder', [
+                'group'     => $groupId,
+                'exception' => $e,
+            ]);
+        }
+    }
+
     private function createVerification(string $userId): Verification {
-        // Replace any stale verification for this user.
         $this->verificationMapper->deleteForUser($userId);
 
         $now = time();
@@ -190,16 +241,12 @@ class RegistrationService {
             ['token' => $token]
         );
 
-        $subject = $this->l10n->t('Confirm your account');
-        $bodyIntro = $this->l10n->t('Hello %s,', [$user->getUID()]);
-        $bodyText = $this->l10n->t('Your account has been created. Please confirm your email address to activate it. This link is valid for 24 hours.');
-
         $emailTemplate = $this->mailer->createEMailTemplate('invite_registration.Verify');
-        $emailTemplate->setSubject($subject);
+        $emailTemplate->setSubject($this->l10n->t('Confirm your account'));
         $emailTemplate->addHeader();
         $emailTemplate->addHeading($this->l10n->t('Confirm your account'));
-        $emailTemplate->addBodyText($bodyIntro);
-        $emailTemplate->addBodyText($bodyText);
+        $emailTemplate->addBodyText($this->l10n->t('Hello %s,', [$user->getUID()]));
+        $emailTemplate->addBodyText($this->l10n->t('Your account has been created. Please confirm your email address to activate it. This link is valid for 24 hours.'));
         $emailTemplate->addBodyButton($this->l10n->t('Confirm account'), $link);
         $emailTemplate->addBodyText($this->l10n->t('If the button does not work, copy this link into your browser:'));
         $emailTemplate->addBodyText($link);
@@ -215,15 +262,6 @@ class RegistrationService {
                 $this->l10n->t('The confirmation email could not be sent. Please contact your administrator.')
             );
         }
-    }
-
-    private function getMinPasswordLength(): int {
-        $configured = $this->appConfig->getValueInt(
-            Application::APP_ID,
-            Application::CONFIG_MIN_PASSWORD_LENGTH,
-            Application::DEFAULT_MIN_PASSWORD_LENGTH
-        );
-        return max(Application::DEFAULT_MIN_PASSWORD_LENGTH, $configured);
     }
 
     private function safeDeleteUser(IUser $user): void {
