@@ -101,7 +101,7 @@ class RegistrationService {
             $user->setEnabled(false);
 
             // Assign the invite's group and ensure a Group Folder exists.
-            $groupId = $invite->getGroupId();
+            $groupId = (string)$invite->getGroupId();
             if ($groupId !== '') {
                 $this->assignGroup($user, $groupId);
                 $this->ensureGroupFolder($groupId);

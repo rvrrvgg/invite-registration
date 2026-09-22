@@ -57,7 +57,9 @@ class InviteService {
         $invite->setMaxUses($maxUses);
         $invite->setUsedCount(0);
         $invite->setRevoked(0);
-        $invite->setGroupId($groupId);
+        // Store null (not empty string) when no team is chosen, to match the
+        // nullable column and stay consistent on PostgreSQL.
+        $invite->setGroupId($groupId !== '' ? $groupId : null);
         $invite->setCreatedAt($now);
         $invite->setCreatedBy($createdBy);
 

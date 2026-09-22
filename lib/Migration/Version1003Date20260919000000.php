@@ -27,10 +27,12 @@ class Version1003Date20260919000000 extends SimpleMigrationStep {
         $table = $schema->getTable('invite_reg_invites');
 
         if (!$table->hasColumn('group_id')) {
+            // Nullable (no notnull, no default): PostgreSQL rejects a NotNull
+            // column that is added with an empty-string default. NULL simply
+            // means "no team", which the app code treats the same as empty.
             $table->addColumn('group_id', Types::STRING, [
-                'notnull' => true,
+                'notnull' => false,
                 'length'  => 64,
-                'default' => '',
             ]);
         }
 

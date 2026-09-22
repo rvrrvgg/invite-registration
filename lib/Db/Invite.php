@@ -17,8 +17,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setUsedCount(int $usedCount)
  * @method int getRevoked()
  * @method void setRevoked(int $revoked)
- * @method string getGroupId()
- * @method void setGroupId(string $groupId)
+ * @method ?string getGroupId()
+ * @method void setGroupId(?string $groupId)
  * @method int getCreatedAt()
  * @method void setCreatedAt(int $createdAt)
  * @method string getCreatedBy()
@@ -32,8 +32,8 @@ class Invite extends Entity {
     // Stored as smallint (0 = active, 1 = revoked) — NOT a boolean column.
     // PostgreSQL rejects a bound PHP `false` on a NotNull boolean column.
     protected int $revoked = 0;
-    /** Nextcloud group ID assigned to users registering via this link. Empty = no group. */
-    protected string $groupId = '';
+    /** Nextcloud group ID assigned to users registering via this link. Null/empty = no group. */
+    protected ?string $groupId = null;
     protected int $createdAt = 0;
     protected string $createdBy = '';
 
@@ -86,7 +86,7 @@ class Invite extends Entity {
             'maxUses'   => $this->getMaxUses(),
             'usedCount' => $this->getUsedCount(),
             'revoked'   => $this->isRevoked(),
-            'groupId'   => $this->getGroupId(),
+            'groupId'   => (string)$this->getGroupId(),
             'createdAt' => $this->getCreatedAt(),
             'createdBy' => $this->getCreatedBy(),
             'status'    => $this->getStatus(),
