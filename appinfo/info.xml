@@ -22,19 +22,17 @@ Features:
     ]]></description>
     <version>1.1.1</version>
     <licence>agpl</licence>
-    <!-- TODO: replace with your real name/pseudonym before publishing. -->
-    <author>DEIN NAME</author>
+    <author>Techhelp Support</author>
     <namespace>InviteRegistration</namespace>
     <category>security</category>
     <category>tools</category>
-    <!-- TODO: replace DEIN-GITHUB-NAME with your GitHub username everywhere below. -->
-    <website>https://github.com/DEIN-GITHUB-NAME/invite_registration</website>
-    <bugs>https://github.com/DEIN-GITHUB-NAME/invite_registration/issues</bugs>
-    <repository type="git">https://github.com/DEIN-GITHUB-NAME/invite_registration.git</repository>
+    <website>https://github.com/rvrrvgg/invite_registration</website>
+    <bugs>https://github.com/rvrrvgg/invite_registration/issues</bugs>
+    <repository type="git">https://github.com/rvrrvgg/invite_registration.git</repository>
     <!-- A screenshot is strongly recommended by the App Store. Replace the URL
-         with a raw link to an image committed to your repo, e.g.
-         https://raw.githubusercontent.com/DEIN-GITHUB-NAME/invite_registration/main/img/screenshot.png -->
-    <screenshot>https://raw.githubusercontent.com/DEIN-GITHUB-NAME/invite_registration/main/img/screenshot.png</screenshot>
+         with a raw link to a real image committed to your repo once you add one,
+         e.g. img/screenshot.png -->
+    <screenshot>https://raw.githubusercontent.com/rvrrvgg/invite_registration/main/img/screenshot.png</screenshot>
     <dependencies>
         <nextcloud min-version="32" max-version="34"/>
     </dependencies>

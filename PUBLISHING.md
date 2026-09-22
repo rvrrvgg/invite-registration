@@ -34,8 +34,7 @@ GitHub automatisch über die mitgelieferte Workflow-Datei.
 4. Sichtbarkeit: **Public** (der App Store verlangt öffentlichen Code).
 5. **Create repository**.
 
-Merke dir deinen GitHub-Namen und den Repo-Pfad, z. B.
-`github.com/DEIN-NAME/invite_registration`.
+Dein Repo-Pfad ist: `github.com/rvrrvgg/invite_registration`.
 
 ---
 
