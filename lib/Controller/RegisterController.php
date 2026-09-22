@@ -16,6 +16,7 @@ use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IURLGenerator;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -29,10 +30,19 @@ class RegisterController extends Controller {
         IRequest $request,
         private InviteService $inviteService,
         private RegistrationService $registrationService,
+        private IURLGenerator $urlGenerator,
         private IL10N $l10n,
         private LoggerInterface $logger,
     ) {
         parent::__construct($appName, $request);
+    }
+
+    /** Absolute URL the registration form posts to. */
+    private function submitUrl(string $token): string {
+        return $this->urlGenerator->linkToRoute(
+            Application::APP_ID . '.register.submit',
+            ['token' => $token]
+        );
     }
 
     /**
@@ -54,6 +64,7 @@ class RegisterController extends Controller {
             'register',
             [
                 'token' => $token,
+                'submitUrl' => $this->submitUrl($token),
                 'minPasswordLength' => Application::DEFAULT_MIN_PASSWORD_LENGTH,
                 'usernamePattern' => Application::USERNAME_PATTERN,
             ],
@@ -136,6 +147,7 @@ class RegisterController extends Controller {
             'register',
             [
                 'token' => $token,
+                'submitUrl' => $this->submitUrl($token),
                 'minPasswordLength' => Application::DEFAULT_MIN_PASSWORD_LENGTH,
                 'usernamePattern' => Application::USERNAME_PATTERN,
                 'error' => $error,

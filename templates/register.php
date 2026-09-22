@@ -5,6 +5,7 @@
  * @var \OCP\IL10N $l
  * @var array $_
  *   - token: string
+ *   - submitUrl: string (absolute-path URL the form posts to)
  *   - minPasswordLength: int
  *   - usernamePattern: string (PHP regex incl. delimiters)
  *   - error: string|null
@@ -24,10 +25,8 @@ if (strlen($rawPattern) >= 2 && $rawPattern[0] === '/') {
     }
 }
 
-$submitUrl = \OC::$server->getURLGenerator()->linkToRoute(
-    'invite_registration.register.submit',
-    ['token' => $_['token']]
-);
+// The submit URL is computed in the controller (via IURLGenerator) and passed in.
+$submitUrl = (string)($_['submitUrl'] ?? '');
 ?>
 <div class="guest-box invite-reg-box">
     <h2><?php p($l->t('Create account')); ?></h2>
