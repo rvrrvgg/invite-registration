@@ -20,7 +20,7 @@ Features:
 - Passwords are never stored by the app; they are passed straight to Nextcloud
 - No token enumeration: invalid, expired, revoked and exhausted links show a generic error
     ]]></description>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
     <licence>agpl</licence>
     <author>Techhelp Support</author>
     <namespace>InviteRegistration</namespace>
@@ -34,7 +34,7 @@ Features:
          e.g. img/screenshot.png -->
     <screenshot>https://raw.githubusercontent.com/rvrrvgg/invite_registration/main/img/screenshot.png</screenshot>
     <dependencies>
-        <nextcloud min-version="32" max-version="34"/>
+        <nextcloud min-version="32" max-version="35"/>
     </dependencies>
     <settings>
         <admin>OCA\InviteRegistration\Settings\AdminSettings</admin>
