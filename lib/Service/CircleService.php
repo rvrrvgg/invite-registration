@@ -69,6 +69,12 @@ class CircleService {
     /**
      * Add a freshly created user to a circle (team).
      * Returns true on success, false on any failure (which is logged).
+     *
+     * addMember() needs an *initiator* (the "invitedBy" member). A plain
+     * super session has no current user, so Circles receives null and throws
+     * "setInvitedBy(): ... null given". We therefore run the call inside an
+     * OCC-style session initiated as the circle's owner, who is always allowed
+     * to add members and serves as the initiator.
      */
     public function addUserToCircle(string $circleId, IUser $user): bool {
         $manager = $this->getManager();
@@ -80,8 +86,31 @@ class CircleService {
         }
 
         try {
-            // Super session: act with full privileges to add the member.
+            // 1. Look up the circle's owner using a super session.
+            $ownerId = null;
             $manager->startSuperSession();
+            try {
+                $probe = new \OCA\Circles\Model\Probes\CircleProbe();
+                $probe->includeSystemCircles();
+                $circle = $manager->getCircle($circleId, $probe);
+                if ($circle->hasOwner()) {
+                    $owner = $circle->getOwner();
+                    // The owner is a Member; its user id identifies the local user.
+                    $ownerId = $owner->getUserId();
+                }
+            } finally {
+                $manager->stopSession();
+            }
+
+            if ($ownerId === null || $ownerId === '') {
+                $this->logger->error('Invite registration: circle has no resolvable owner', [
+                    'circle' => $circleId,
+                ]);
+                return false;
+            }
+
+            // 2. Start a session initiated as the owner, then add the member.
+            $manager->startOccSession($ownerId, \OCA\Circles\Model\Member::TYPE_USER);
             try {
                 $federatedUser = $manager->getLocalFederatedUser($user->getUID());
                 $manager->addMember($circleId, $federatedUser);
