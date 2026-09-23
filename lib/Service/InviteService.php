@@ -35,9 +35,10 @@ class InviteService {
      * @param int    $maxUses       how many accounts may be created (>= 1)
      * @param string $createdBy     admin uid
      * @param string $groupId       Nextcloud group ID to assign on registration ('' = none)
+     * @param string $circleId      Circles (Teams) single ID to assign on registration ('' = none)
      * @throws \InvalidArgumentException on out-of-range input
      */
-    public function create(int $validityHours, int $maxUses, string $createdBy, string $groupId = ''): Invite {
+    public function create(int $validityHours, int $maxUses, string $createdBy, string $groupId = '', string $circleId = ''): Invite {
         if ($validityHours < 0) {
             throw new \InvalidArgumentException('validityHours must be >= 0');
         }
@@ -57,9 +58,10 @@ class InviteService {
         $invite->setMaxUses($maxUses);
         $invite->setUsedCount(0);
         $invite->setRevoked(0);
-        // Store null (not empty string) when no team is chosen, to match the
-        // nullable column and stay consistent on PostgreSQL.
+        // Store null (not empty string) when nothing is chosen, to match the
+        // nullable columns and stay consistent on PostgreSQL.
         $invite->setGroupId($groupId !== '' ? $groupId : null);
+        $invite->setCircleId($circleId !== '' ? $circleId : null);
         $invite->setCreatedAt($now);
         $invite->setCreatedBy($createdBy);
 

@@ -19,6 +19,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setRevoked(int $revoked)
  * @method ?string getGroupId()
  * @method void setGroupId(?string $groupId)
+ * @method ?string getCircleId()
+ * @method void setCircleId(?string $circleId)
  * @method int getCreatedAt()
  * @method void setCreatedAt(int $createdAt)
  * @method string getCreatedBy()
@@ -34,6 +36,8 @@ class Invite extends Entity {
     protected int $revoked = 0;
     /** Nextcloud group ID assigned to users registering via this link. Null/empty = no group. */
     protected ?string $groupId = null;
+    /** Circles (Teams) single ID assigned to users registering via this link. Null/empty = no team. */
+    protected ?string $circleId = null;
     protected int $createdAt = 0;
     protected string $createdBy = '';
 
@@ -44,6 +48,7 @@ class Invite extends Entity {
         $this->addType('usedCount', 'integer');
         $this->addType('revoked', 'integer');
         $this->addType('groupId', 'string');
+        $this->addType('circleId', 'string');
         $this->addType('createdAt', 'integer');
         $this->addType('createdBy', 'string');
     }
@@ -87,6 +92,7 @@ class Invite extends Entity {
             'usedCount' => $this->getUsedCount(),
             'revoked'   => $this->isRevoked(),
             'groupId'   => (string)$this->getGroupId(),
+            'circleId'  => (string)$this->getCircleId(),
             'createdAt' => $this->getCreatedAt(),
             'createdBy' => $this->getCreatedBy(),
             'status'    => $this->getStatus(),

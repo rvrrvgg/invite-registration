@@ -44,11 +44,11 @@ class AdminController extends Controller {
 
     /**
      * Create a new invite.
-     * Expects JSON body: { "validityHours": int, "maxUses": int, "groupId": string }.
+     * Expects JSON body: { "validityHours": int, "maxUses": int, "groupId": string, "circleId": string }.
      */
-    public function create(int $validityHours = 24, int $maxUses = 1, string $groupId = ''): DataResponse {
+    public function create(int $validityHours = 24, int $maxUses = 1, string $groupId = '', string $circleId = ''): DataResponse {
         try {
-            $invite = $this->inviteService->create($validityHours, $maxUses, $this->getUid(), $groupId);
+            $invite = $this->inviteService->create($validityHours, $maxUses, $this->getUid(), $groupId, $circleId);
         } catch (\InvalidArgumentException $e) {
             return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
         }

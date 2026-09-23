@@ -46,6 +46,7 @@ class RegistrationService {
         private ISecureRandom $secureRandom,
         private IL10N $l10n,
         private LoggerInterface $logger,
+        private CircleService $circleService,
     ) {
     }
 
@@ -100,11 +101,17 @@ class RegistrationService {
             $user->setEMailAddress($email);
             $user->setEnabled(false);
 
-            // Assign the invite's group and ensure a Group Folder exists.
+            // Assign the invite's group (with an automatic Group Folder) OR
+            // the invite's team (Circle). A link uses at most one of them.
             $groupId = (string)$invite->getGroupId();
+            $circleId = (string)$invite->getCircleId();
             if ($groupId !== '') {
                 $this->assignGroup($user, $groupId);
                 $this->ensureGroupFolder($groupId);
+            } elseif ($circleId !== '') {
+                // Non-fatal: if adding to the team fails it is logged, but the
+                // account is still created and verified.
+                $this->circleService->addUserToCircle($circleId, $user);
             }
 
             $verification = $this->createVerification($user->getUID());

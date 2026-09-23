@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\InviteRegistration\Settings;
 
 use OCA\InviteRegistration\AppInfo\Application;
+use OCA\InviteRegistration\Service\CircleService;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IGroupManager;
@@ -15,6 +16,7 @@ class AdminSettings implements ISettings {
     public function __construct(
         private IInitialState $initialState,
         private IGroupManager $groupManager,
+        private CircleService $circleService,
     ) {
     }
 
@@ -31,6 +33,9 @@ class AdminSettings implements ISettings {
         );
 
         $this->initialState->provideInitialState('groups', array_values($groups));
+
+        // Teams (Circles) — empty array if the Circles app is not installed.
+        $this->initialState->provideInitialState('circles', $this->circleService->listCircles());
 
         Util::addScript(Application::APP_ID, Application::APP_ID . '-admin');
         Util::addStyle(Application::APP_ID, 'admin');
