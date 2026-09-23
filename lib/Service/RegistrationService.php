@@ -11,7 +11,6 @@ use OCA\InviteRegistration\Db\VerificationMapper;
 use OCA\InviteRegistration\Exception\RegistrationException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
-use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\IUser;
@@ -25,11 +24,8 @@ use Psr\Log\LoggerInterface;
  * email verification flow. The account is created disabled and only enabled
  * once the user confirms their email address.
  *
- * If the invite has a group assigned:
- *  1. The user is added to that group.
- *  2. If no Group Folder with that group exists yet, one is created automatically
- *     with the group's display name as mount point and the group assigned with
- *     full permissions.
+ * This app works exclusively with the Circles (Teams) app: every invite is
+ * tied to a team, and the new user is added to that team on registration.
  *
  * Passwords are passed straight to Nextcloud's user manager and never stored.
  */
@@ -39,7 +35,6 @@ class RegistrationService {
 
     public function __construct(
         private IUserManager $userManager,
-        private IGroupManager $groupManager,
         private VerificationMapper $verificationMapper,
         private IMailer $mailer,
         private IURLGenerator $urlGenerator,
@@ -75,9 +70,8 @@ class RegistrationService {
     }
 
     /**
-     * Create the (disabled) account, assign the invite's group, ensure a Group
-     * Folder exists for that group, store a verification token and send the
-     * confirmation email.
+     * Create the (disabled) account, add the user to the invite's team,
+     * store a verification token and send the confirmation email.
      *
      * @throws RegistrationException on any failure (message is user-safe)
      */
@@ -101,17 +95,18 @@ class RegistrationService {
             $user->setEMailAddress($email);
             $user->setEnabled(false);
 
-            // Assign the invite's group (with an automatic Group Folder) OR
-            // the invite's team (Circle). A link uses at most one of them.
-            $groupId = (string)$invite->getGroupId();
+            // Add the user to the invite's team. This is required: if it fails,
+            // roll back the account so the user is never left without a team.
             $circleId = (string)$invite->getCircleId();
-            if ($groupId !== '') {
-                $this->assignGroup($user, $groupId);
-                $this->ensureGroupFolder($groupId);
-            } elseif ($circleId !== '') {
-                // Non-fatal: if adding to the team fails it is logged, but the
-                // account is still created and verified.
-                $this->circleService->addUserToCircle($circleId, $user);
+            if ($circleId === '') {
+                throw new RegistrationException(
+                    $this->l10n->t('This invitation has no team assigned. Please contact your administrator.')
+                );
+            }
+            if (!$this->circleService->addUserToCircle($circleId, $user)) {
+                throw new RegistrationException(
+                    $this->l10n->t('You could not be added to the team. Please contact your administrator.')
+                );
             }
 
             $verification = $this->createVerification($user->getUID());
@@ -168,63 +163,6 @@ class RegistrationService {
     // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
-
-    private function assignGroup(IUser $user, string $groupId): void {
-        $group = $this->groupManager->get($groupId);
-        if ($group === null) {
-            $this->logger->warning('Invite registration: invite group does not exist', ['group' => $groupId]);
-            return;
-        }
-        $group->addUser($user);
-    }
-
-    /**
-     * Create a Group Folder for $groupId if none exists yet.
-     * Uses the Group Folders app's FolderManager. If the app is not available
-     * (e.g. deactivated), the error is logged and silently swallowed so that
-     * account creation still succeeds.
-     */
-    private function ensureGroupFolder(string $groupId): void {
-        try {
-            $folderManager = \OCP\Server::get(\OCA\GroupFolders\Folder\FolderManager::class);
-        } catch (\Throwable $e) {
-            $this->logger->warning('Invite registration: Group Folders app not available, skipping folder creation', ['exception' => $e]);
-            return;
-        }
-
-        try {
-            // Check if this group already has a folder assigned.
-            if ($folderManager->hasFolderForGroup($groupId)) {
-                return;
-            }
-
-            // Use the group display name as the mount point, falling back to the ID.
-            $group = $this->groupManager->get($groupId);
-            $mountPoint = $group !== null ? $group->getDisplayName() : $groupId;
-
-            // If a folder with the same mount point already exists, use the group ID
-            // as a suffix to avoid a collision.
-            if ($folderManager->mountPointExists($mountPoint)) {
-                $mountPoint = $mountPoint . '_' . $groupId;
-            }
-
-            $folderId = $folderManager->createFolder($mountPoint);
-            $folderManager->addApplicableGroup($folderId, $groupId);
-
-            $this->logger->info('Invite registration: created Group Folder for group', [
-                'group'       => $groupId,
-                'mountPoint'  => $mountPoint,
-                'folderId'    => $folderId,
-            ]);
-        } catch (\Throwable $e) {
-            // A folder creation failure is non-fatal: the user and group
-            // assignment succeeded. Log it so an admin can act on it.
-            $this->logger->error('Invite registration: failed to create Group Folder', [
-                'group'     => $groupId,
-                'exception' => $e,
-            ]);
-        }
-    }
 
     private function createVerification(string $userId): Verification {
         $this->verificationMapper->deleteForUser($userId);

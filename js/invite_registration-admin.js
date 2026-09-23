@@ -166,31 +166,22 @@
 
 	var state = {
 		invites: [],
-		groups: loadState('groups', []),
 		circles: loadState('circles', []),
 	};
 
 	var refs = {};
 
-	/** Human-readable label for an invite's assignment (group or team). */
-	function assignmentLabel(invite) {
-		if (invite.groupId) {
-			for (var i = 0; i < state.groups.length; i++) {
-				if (state.groups[i].id === invite.groupId) {
-					return state.groups[i].displayName;
-				}
-			}
-			return invite.groupId;
+	/** Human-readable team name for an invite. */
+	function teamLabel(invite) {
+		if (!invite.circleId) {
+			return '—';
 		}
-		if (invite.circleId) {
-			for (var j = 0; j < state.circles.length; j++) {
-				if (state.circles[j].id === invite.circleId) {
-					return t('Team: %s').replace('%s', state.circles[j].displayName);
-				}
+		for (var j = 0; j < state.circles.length; j++) {
+			if (state.circles[j].id === invite.circleId) {
+				return state.circles[j].displayName;
 			}
-			return t('Team: %s').replace('%s', invite.circleId);
 		}
-		return '—';
+		return invite.circleId;
 	}
 
 	// ---- rendering -----------------------------------------------------
@@ -223,45 +214,26 @@
 			class: 'ir-input',
 		});
 
-		// Per-link assignment selector. One dropdown, two categories:
-		// normal groups and teams (Circles). The option value is prefixed with
-		// "group:" or "circle:" so the submit handler knows which one it is.
-		var assignChildren = [el('option', { value: '', text: t('None') })];
-
-		if (state.groups.length) {
-			assignChildren.push(el('optgroup', { label: t('Groups') },
-				state.groups.map(function (g) {
-					return el('option', { value: 'group:' + g.id, text: g.displayName });
-				})
-			));
-		}
-		if (state.circles.length) {
-			assignChildren.push(el('optgroup', { label: t('Teams') },
-				state.circles.map(function (c) {
-					return el('option', { value: 'circle:' + c.id, text: c.displayName });
-				})
-			));
-		}
-
-		var assignSelect = el('select', { id: 'ir-assign', class: 'ir-input' }, assignChildren);
+		// Per-link team selector. A team is required for every invite.
+		var teamSelect = el('select', { id: 'ir-team', class: 'ir-input' },
+			state.circles.map(function (c) {
+				return el('option', { value: c.id, text: c.displayName });
+			})
+		);
 
 		var createBtn = el('button', {
 			class: 'button primary',
 			type: 'button',
 			text: t('Create invitation link'),
 			onclick: function () {
-				var val = assignSelect.value;
-				var groupId = '';
-				var circleId = '';
-				if (val.indexOf('group:') === 0) {
-					groupId = val.slice(6);
-				} else if (val.indexOf('circle:') === 0) {
-					circleId = val.slice(7);
+				var circleId = teamSelect.value;
+				if (!circleId) {
+					toastError(t('Please select a team first.'));
+					return;
 				}
 				createInvite(
 					parseInt(validitySelect.value, 10),
 					parseInt(usesInput.value, 10),
-					groupId,
 					circleId,
 					createBtn
 				);
@@ -284,12 +256,13 @@
 					usesInput,
 				]),
 				el('div', { class: 'ir-field' }, [
-					el('label', { for: 'ir-assign', text: t('Group or Team') }),
-					assignSelect,
+					el('label', { for: 'ir-team', text: t('Team') }),
+					teamSelect,
 				]),
 				el('div', { class: 'ir-field ir-field-btn' }, [createBtn]),
 			]),
-			el('p', { class: 'settings-hint ir-group-hint', text: t('Optionally assign the new user to a group (a shared folder is created automatically if the Group Folders app is installed) or to a team from the Circles app.') }),
+			el('p', { class: 'settings-hint ir-group-hint', text: t('The new user joins the selected team (from the Circles app) after confirming their email.') }),
+			state.circles.length ? null : el('p', { class: 'ir-error', text: t('No teams found. Create a team in the Circles app first.') }),
 			lastLinkBox,
 		]);
 	}
@@ -330,7 +303,7 @@
 		var thead = el('thead', {}, [
 			el('tr', {}, [
 				el('th', { text: t('Link') }),
-				el('th', { text: t('Group / Team') }),
+				el('th', { text: t('Team') }),
 				el('th', { text: t('Valid until') }),
 				el('th', { text: t('Usage') }),
 				el('th', { text: t('Status') }),
@@ -363,7 +336,7 @@
 					el('code', { title: invite.link, text: shortToken(invite.token) }),
 					copyBtn,
 				]),
-				el('td', { text: assignmentLabel(invite) }),
+				el('td', { text: teamLabel(invite) }),
 				el('td', { text: formatDate(invite.expiresAt) }),
 				el('td', { text: invite.usedCount + ' / ' + invite.maxUses }),
 				el('td', {}, [
@@ -388,7 +361,7 @@
 		});
 	}
 
-	function createInvite(validityHours, maxUses, groupId, circleId, btn) {
+	function createInvite(validityHours, maxUses, circleId, btn) {
 		if (!Number.isInteger(maxUses) || maxUses < 1) {
 			toastError(t('Number of uses must be at least 1.'));
 			return;
@@ -397,7 +370,6 @@
 		api('POST', '/admin/invites', {
 			validityHours: validityHours,
 			maxUses: maxUses,
-			groupId: groupId || '',
 			circleId: circleId || '',
 		})
 			.then(function (data) {

@@ -34,11 +34,10 @@ class InviteService {
      * @param int    $validityHours how long the link stays valid, in hours. 0 = never expires.
      * @param int    $maxUses       how many accounts may be created (>= 1)
      * @param string $createdBy     admin uid
-     * @param string $groupId       Nextcloud group ID to assign on registration ('' = none)
-     * @param string $circleId      Circles (Teams) single ID to assign on registration ('' = none)
+     * @param string $circleId      Circles (Teams) single ID the new user joins (required, non-empty)
      * @throws \InvalidArgumentException on out-of-range input
      */
-    public function create(int $validityHours, int $maxUses, string $createdBy, string $groupId = '', string $circleId = ''): Invite {
+    public function create(int $validityHours, int $maxUses, string $createdBy, string $circleId): Invite {
         if ($validityHours < 0) {
             throw new \InvalidArgumentException('validityHours must be >= 0');
         }
@@ -49,6 +48,10 @@ class InviteService {
         if ($maxUses < 1 || $maxUses > self::MAX_USES_LIMIT) {
             throw new \InvalidArgumentException('maxUses out of range');
         }
+        if (trim($circleId) === '') {
+            // A team is mandatory for every invite.
+            throw new \InvalidArgumentException('circleId is required');
+        }
 
         $now = time();
         $invite = new Invite();
@@ -58,10 +61,9 @@ class InviteService {
         $invite->setMaxUses($maxUses);
         $invite->setUsedCount(0);
         $invite->setRevoked(0);
-        // Store null (not empty string) when nothing is chosen, to match the
-        // nullable columns and stay consistent on PostgreSQL.
-        $invite->setGroupId($groupId !== '' ? $groupId : null);
-        $invite->setCircleId($circleId !== '' ? $circleId : null);
+        // Groups are no longer used; keep the column null. The team is required.
+        $invite->setGroupId(null);
+        $invite->setCircleId($circleId);
         $invite->setCreatedAt($now);
         $invite->setCreatedBy($createdBy);
 

@@ -8,33 +8,20 @@ use OCA\InviteRegistration\AppInfo\Application;
 use OCA\InviteRegistration\Service\CircleService;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
-use OCP\IGroupManager;
 use OCP\Settings\ISettings;
 use OCP\Util;
 
 class AdminSettings implements ISettings {
     public function __construct(
         private IInitialState $initialState,
-        private IGroupManager $groupManager,
         private CircleService $circleService,
     ) {
     }
 
     public function getForm(): TemplateResponse {
-        // Provide the list of groups to the build-free admin script via
-        // IInitialState (base64-encoded JSON). The script uses these both for
-        // the per-link team selector and to label groups in the invite table.
-        $groups = array_map(
-            static fn ($group) => [
-                'id' => $group->getGID(),
-                'displayName' => $group->getDisplayName(),
-            ],
-            $this->groupManager->search('')
-        );
-
-        $this->initialState->provideInitialState('groups', array_values($groups));
-
-        // Teams (Circles) — empty array if the Circles app is not installed.
+        // Provide the list of teams (Circles) to the build-free admin script
+        // via IInitialState (base64-encoded JSON). Every invite is tied to a
+        // team, so this is the only assignment source.
         $this->initialState->provideInitialState('circles', $this->circleService->listCircles());
 
         Util::addScript(Application::APP_ID, Application::APP_ID . '-admin');

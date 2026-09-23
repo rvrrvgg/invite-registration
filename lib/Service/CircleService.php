@@ -10,13 +10,13 @@ use Psr\Log\LoggerInterface;
 /**
  * Thin wrapper around the Circles ("Teams") app.
  *
- * The Circles app is optional. Every call is guarded so that the rest of the
- * app keeps working if Circles is not installed or disabled: listing returns
- * an empty array, and adding a member logs and returns false instead of
- * throwing.
+ * The Circles app is a required dependency of this app (declared in info.xml),
+ * so it is normally always present. Calls are still guarded defensively: if the
+ * Circles classes cannot be resolved for any reason, listing returns an empty
+ * array and adding a member logs and returns false instead of throwing, so the
+ * failure surfaces as a clean user-facing error rather than a crash.
  *
- * We resolve OCA\Circles\CirclesManager lazily via the server container so
- * there is no hard dependency on the Circles app being present.
+ * We resolve OCA\Circles\CirclesManager lazily via the server container.
  */
 class CircleService {
     public function __construct(

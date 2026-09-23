@@ -150,3 +150,9 @@ select.ir-input {
 .ir-actions-col .button {
     margin-left: 4px;
 }
+
+/* Warning shown when no teams exist yet */
+.ir-error {
+    color: var(--color-error, #e9322d);
+    font-weight: 600;
+}
