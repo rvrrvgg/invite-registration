@@ -31,13 +31,13 @@ Requires the Circles app: https://apps.nextcloud.com/apps/circles
     <namespace>InviteRegistration</namespace>
     <category>security</category>
     <category>tools</category>
-    <website>https://github.com/rvrrvgg/invite_registration</website>
-    <bugs>https://github.com/rvrrvgg/invite_registration/issues</bugs>
-    <repository type="git">https://github.com/rvrrvgg/invite_registration.git</repository>
+    <website>https://github.com/rvrrvgg/invite-registration</website>
+    <bugs>https://github.com/rvrrvgg/invite-registration/issues</bugs>
+    <repository type="git">https://github.com/rvrrvgg/invite-registration.git</repository>
     <!-- A screenshot is strongly recommended by the App Store. Replace the URL
          with a raw link to a real image committed to your repo once you add one,
          e.g. img/screenshot.png -->
-    <screenshot>https://raw.githubusercontent.com/rvrrvgg/invite_registration/main/img/screenshot.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/rvrrvgg/invite-registration/main/img/screenshot.png</screenshot>
     <dependencies>
         <nextcloud min-version="32" max-version="35"/>
     </dependencies>
