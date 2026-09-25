@@ -27,6 +27,12 @@ on:
 env:
   APP_ID: invite_registration
 
+# The release job attaches the built .tar.gz to the GitHub Release, which
+# requires write access to repository contents. The default GITHUB_TOKEN is
+# read-only unless we grant this explicitly.
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
